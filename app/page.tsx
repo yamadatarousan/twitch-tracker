@@ -36,19 +36,28 @@ export default function Home() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [videos, setVideos] = useState<Video[]>([]);
   const [activeTab, setActiveTab] = useState<'streams' | 'schedules' | 'videos'>('streams');
+  const [isLoading, setIsLoading] = useState(true); // ローディング状態を追加
 
   useEffect(() => {
-    fetch('/api/twitch-streams')
-      .then((res) => res.json())
-      .then((data) => setStreams(data.data || []));
+    const fetchData = async () => {
+      setIsLoading(true); // ローディング開始
+      try {
+        const [streamsRes, schedulesRes, videosRes] = await Promise.all([
+          fetch('/api/twitch-streams').then((res) => res.json()),
+          fetch('/api/twitch-schedules').then((res) => res.json()),
+          fetch('/api/twitch-videos').then((res) => res.json()),
+        ]);
+        setStreams(streamsRes.data || []);
+        setSchedules(schedulesRes.data || []);
+        setVideos(videosRes.data || []);
+      } catch (error) {
+        console.error('データ取得エラー:', error);
+      } finally {
+        setIsLoading(false); // ローディング終了
+      }
+    };
 
-    fetch('/api/twitch-schedules')
-      .then((res) => res.json())
-      .then((data) => setSchedules(data.data || []));
-
-    fetch('/api/twitch-videos')
-      .then((res) => res.json())
-      .then((data) => setVideos(data.data || []));
+    fetchData();
   }, []);
 
   return (
@@ -117,7 +126,11 @@ export default function Home() {
         {/* ライブ配信タブ */}
         {activeTab === 'streams' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {streams.length > 0 ? (
+            {isLoading ? (
+              <p className="text-center text-vspoLightPurple col-span-4 text-lg">
+                読み込み中...
+              </p>
+            ) : streams.length > 0 ? (
               streams.map((stream) => (
                 <div
                   key={stream.id}
@@ -158,7 +171,11 @@ export default function Home() {
         {/* 配信予定タブ */}
         {activeTab === 'schedules' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {schedules.length > 0 ? (
+            {isLoading ? (
+              <p className="text-center text-vspoLightPurple col-span-4 text-lg">
+                読み込み中...
+              </p>
+            ) : schedules.length > 0 ? (
               schedules.map((schedule) => (
                 <div
                   key={schedule.id}
@@ -192,7 +209,11 @@ export default function Home() {
         {/* 過去の配信タブ */}
         {activeTab === 'videos' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {videos.length > 0 ? (
+            {isLoading ? (
+              <p className="text-center text-vspoLightPurple col-span-4 text-lg">
+                読み込み中...
+              </p>
+            ) : videos.length > 0 ? (
               videos.map((video) => (
                 <div
                   key={video.id}
