@@ -16,6 +16,7 @@ export async function GET() {
     const vtuberIds = ['858359149', '776751504', '790167759', '584184005'];
     const videos = [];
 
+    // すべてのVTuberのアーカイブを取得
     for (const vtuberId of vtuberIds) {
       const response = await axios.get('https://api.twitch.tv/helix/videos', {
         params: { user_id: vtuberId, type: 'archive', first: 20 },
@@ -24,8 +25,6 @@ export async function GET() {
           Authorization: `Bearer ${accessToken}`,
         },
       });
-
-      console.log('Raw video response for vtuberId', vtuberId, response.data.data);
 
       for (const video of response.data.data) {
         let thumbnailUrl = video.thumbnail_url;
@@ -43,10 +42,13 @@ export async function GET() {
           duration: video.duration ? parseDuration(video.duration) : null,
           thumbnail_url: thumbnailUrl,
           url: video.url,
-          view_count: video.view_count, // 視聴回数を追加
+          view_count: video.view_count || 0,
         });
       }
     }
+
+    // すべてのアーカイブをpublished_atでソート（新しい順）
+    videos.sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
 
     const db = await mysql.createConnection(process.env.DATABASE_URL!);
     for (const video of videos) {
@@ -63,7 +65,7 @@ export async function GET() {
           video.duration,
           video.thumbnail_url,
           video.url,
-          video.view_count, // 視聴回数を保存
+          video.view_count,
         ]
       );
     }
