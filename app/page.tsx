@@ -56,18 +56,27 @@ export default function Home() {
       className="min-h-screen bg-vspoBlack p-6 md:p-8 bg-vspo-texture bg-vspo-texture-size relative"
       style={{
         backgroundImage:
-          'linear-gradient(to bottom, rgba(139, 92, 246, 0.05), transparent), var(--tw-bg-vspo-texture)', // グラデーションを薄く
+          'linear-gradient(to bottom, rgba(139, 92, 246, 0.05), transparent), var(--tw-bg-vspo-texture)',
       }}
     >
       {/* 背景のオーバーレイ */}
       <div className="absolute inset-0 bg-vspoDarkOverlay pointer-events-none" />
 
       {/* タイトル */}
-      <h1
-        className="text-4xl md:text-5xl font-bold text-center mb-10 shadow-neon-strong animate-fade-in bg-title-gradient bg-clip-text text-transparent"
-      >
-        ぶいすぽっ！ライブ配信トラッカー
-      </h1>
+      <div className="text-center mb-12">
+        <h1 className="text-5xl md:text-6xl font-bold font-orbitron text-vspoWhite shadow-neon-strong animate-fade-in inline-block">
+          {Array.from('ぶいすぽっ！ライブ配信トラッカー').map((char, index) => (
+            <span
+              key={index}
+              className="inline-block animate-wave"
+              style={{ animationDelay: `${index * 0.1}s` }}
+            >
+              {char}
+            </span>
+          ))}
+        </h1>
+        <div className="mt-6 h-1 w-1/3 mx-auto bg-title-underline rounded-full" />
+      </div>
 
       {/* タブボタン */}
       <div className="flex justify-center space-x-4 mb-8">
