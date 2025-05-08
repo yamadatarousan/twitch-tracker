@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 import mysql from 'mysql2/promise';
+import { getVtuberName } from '../../lib/db';
 
 export async function GET() {
   try {
@@ -13,43 +14,48 @@ export async function GET() {
     });
     const accessToken = tokenResponse.data.access_token;
 
-    const vtuberIds = ['858359149', '776751504', '790167759', '584184005']; // ユーザーIDのリスト
+    // DB から VTuber の ID 一覧を取得
+    const db = await mysql.createConnection(process.env.DATABASE_URL!);
+    const [vtuberRows] = await db.execute('SELECT id FROM vtubers');
+    const vtuberIds = (vtuberRows as any[]).map((row) => row.id);
+    console.log('取得した VTuber ID (schedules):', vtuberIds); // デバッグログ
+    await db.end();
+
     const schedules = [];
+    const now = new Date(); // 現在日時を動的に取得
 
     for (const vtuberId of vtuberIds) {
-      try {
-        const response = await axios.get('https://api.twitch.tv/helix/schedule', {
-          params: { broadcaster_id: vtuberId },
-          headers: {
-            'Client-ID': process.env.TWITCH_CLIENT_ID,
-            Authorization: `Bearer ${accessToken}`,
-          },
-        });
+      const response = await axios.get('https://api.twitch.tv/helix/schedule', {
+        params: { broadcaster_id: vtuberId },
+        headers: {
+          'Client-ID': process.env.TWITCH_CLIENT_ID,
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
 
-        if (response.data.data?.segments) {
-          for (const segment of response.data.data.segments) {
-            schedules.push({
-              id: segment.id,
-              vtuber_id: vtuberId,
-              title: segment.title,
-              start_time: segment.start_time,
-              duration: segment.duration ? parseInt(segment.duration) : null,
-              url: `https://twitch.tv/${response.data.data.broadcaster_login}`,
-            });
-          }
+      for (const segment of response.data.data.segments || []) {
+        const startTime = new Date(segment.start_time);
+        // 現在日時より未来の予定のみを追加
+        if (startTime > now) {
+          const userName = await getVtuberName(vtuberId);
+          console.log(`vtuberId: ${vtuberId}, userName: ${userName} (schedules)`); // デバッグログ
+
+          schedules.push({
+            id: segment.id,
+            vtuber_id: vtuberId,
+            user_name: userName,
+            title: segment.title || 'タイトル未定',
+            start_time: segment.start_time,
+            duration: segment.duration ? parseDuration(segment.duration) : null,
+            url: `https://www.twitch.tv/${vtuberId}`,
+          });
         }
-      } catch (error: any) {
-        if (error.response?.status === 404) {
-          console.log(`No schedule found for vtuber_id: ${vtuberId}`);
-          continue; // 404ならスキップして次のVTuberへ
-        }
-        throw error; // 404以外のエラーは再スロー
       }
     }
 
-    const db = await mysql.createConnection(process.env.DATABASE_URL!);
+    const dbSave = await mysql.createConnection(process.env.DATABASE_URL!);
     for (const schedule of schedules) {
-      await db.execute(
+      await dbSave.execute(
         `INSERT INTO schedules (id, vtuber_id, title, start_time, duration, url, created_at)
          VALUES (?, ?, ?, ?, ?, ?, NOW())
          ON DUPLICATE KEY UPDATE
@@ -64,11 +70,21 @@ export async function GET() {
         ]
       );
     }
-    await db.end();
+    await dbSave.end();
 
+    console.log('返却するスケジュールデータ:', schedules); // デバッグログ
     return NextResponse.json({ data: schedules });
   } catch (error: any) {
-    console.error('Error in /api/twitch-schedules:', error.message, error.stack);
+    console.error('スケジュール取得エラー:', error);
     return NextResponse.json({ error: error.message || 'Failed to get schedules' }, { status: 500 });
   }
+}
+
+function parseDuration(duration: string): number | null {
+  const match = duration.match(/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/);
+  if (!match) return null;
+  const hours = parseInt(match[1] || '0') * 60;
+  const minutes = parseInt(match[2] || '0');
+  const seconds = parseInt(match[3] || '0') / 60;
+  return hours + minutes + Math.round(seconds);
 }

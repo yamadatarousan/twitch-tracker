@@ -14,6 +14,7 @@ interface Stream {
 interface Schedule {
   id: string;
   vtuber_id: string;
+  user_name: string;
   title: string;
   start_time: string;
   duration: number | null;
@@ -23,6 +24,7 @@ interface Schedule {
 interface Video {
   id: string;
   vtuber_id: string;
+  user_name: string;
   title: string;
   published_at: string;
   duration: number | null;
@@ -36,11 +38,11 @@ export default function Home() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [videos, setVideos] = useState<Video[]>([]);
   const [activeTab, setActiveTab] = useState<'streams' | 'schedules' | 'videos'>('streams');
-  const [isLoading, setIsLoading] = useState(true); // ローディング状態を追加
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
-      setIsLoading(true); // ローディング開始
+      setIsLoading(true);
       try {
         const [streamsRes, schedulesRes, videosRes] = await Promise.all([
           fetch('/api/twitch-streams').then((res) => res.json()),
@@ -53,12 +55,15 @@ export default function Home() {
       } catch (error) {
         console.error('データ取得エラー:', error);
       } finally {
-        setIsLoading(false); // ローディング終了
+        setIsLoading(false);
       }
     };
 
     fetchData();
   }, []);
+
+  // 現在日時を動的に取得
+  const now = new Date();
 
   return (
     <div
@@ -176,28 +181,31 @@ export default function Home() {
                 読み込み中...
               </p>
             ) : schedules.length > 0 ? (
-              schedules.map((schedule) => (
-                <div
-                  key={schedule.id}
-                  className="bg-vspoDark rounded-lg shadow-vspo hover:shadow-vspo-hover transition-transform-glow duration-300 transform hover:scale-105 border border-vspoPurple border-opacity-30 p-3"
-                >
-                  <h3 className="text-sm font-semibold text-vspoWhite truncate">{schedule.title}</h3>
-                  <p className="text-xs text-vspoLightPurple mt-1">
-                    開始: {new Date(schedule.start_time).toLocaleString('ja-JP')}
-                  </p>
-                  <p className="text-xs text-vspoLightPurple">
-                    長さ: {schedule.duration ? `${schedule.duration}分` : '未定'}
-                  </p>
-                  <a
-                    href={schedule.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-vspoPurple hover:text-vspoLightPurple text-xs font-medium mt-1 inline-block transition-colors"
+              schedules
+                .filter((schedule) => new Date(schedule.start_time) > now) // クライアント側でもフィルタリング
+                .map((schedule) => (
+                  <div
+                    key={schedule.id}
+                    className="bg-vspoDark rounded-lg shadow-vspo hover:shadow-vspo-hover transition-transform-glow duration-300 transform hover:scale-105 border border-vspoPurple border-opacity-30 p-3"
                   >
-                    Twitchで見る
-                  </a>
-                </div>
-              ))
+                    <h3 className="text-sm font-semibold text-vspoWhite truncate">{schedule.title}</h3>
+                    <p className="text-xs text-vspoLightPurple mt-1">配信者: {schedule.user_name}</p>
+                    <p className="text-xs text-vspoLightPurple mt-1">
+                      開始: {new Date(schedule.start_time).toLocaleString('ja-JP')}
+                    </p>
+                    <p className="text-xs text-vspoLightPurple">
+                      長さ: {schedule.duration ? `${schedule.duration}分` : '未定'}
+                    </p>
+                    <a
+                      href={schedule.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-vspoPurple hover:text-vspoLightPurple text-xs font-medium mt-1 inline-block transition-colors"
+                    >
+                      Twitchで見る
+                    </a>
+                  </div>
+                ))
             ) : (
               <p className="text-center text-vspoLightPurple col-span-4 text-lg">
                 近日中の配信予定はありません
@@ -236,6 +244,7 @@ export default function Home() {
                   </a>
                   <div className="p-3">
                     <h3 className="text-sm font-semibold text-vspoWhite truncate">{video.title}</h3>
+                    <p className="text-xs text-vspoLightPurple mt-1">配信者: {video.user_name}</p>
                     <p className="text-xs text-vspoLightPurple mt-1">
                       公開日: {new Date(video.published_at).toLocaleString('ja-JP')}
                     </p>

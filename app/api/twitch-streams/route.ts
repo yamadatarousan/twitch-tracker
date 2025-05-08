@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 import mysql from 'mysql2/promise';
+import { getVtuberName } from '../../lib/db';
 
 export async function GET() {
   try {
@@ -13,44 +14,47 @@ export async function GET() {
     });
     const accessToken = tokenResponse.data.access_token;
 
-    const vtubers = ['ramuneshiranami', 'asumisena', 'nazunakaga', 'akarindao'];
+    // DB から VTuber の ID 一覧を取得
+    const db = await mysql.createConnection(process.env.DATABASE_URL!);
+    const [vtuberRows] = await db.execute('SELECT id FROM vtubers');
+    const vtuberIds = (vtuberRows as any[]).map((row) => row.id);
+    console.log('取得した VTuber ID (streams):', vtuberIds); // デバッグログ
+    await db.end();
+
+    const streams = [];
+
     const response = await axios.get('https://api.twitch.tv/helix/streams', {
-      params: new URLSearchParams(vtubers.map(login => ['user_login', login])),
+      params: { user_id: vtuberIds, first: 100 },
       headers: {
         'Client-ID': process.env.TWITCH_CLIENT_ID,
         Authorization: `Bearer ${accessToken}`,
       },
     });
 
-    // 配信ページのURLを追加
-    const streamsWithUrl = response.data.data.map((stream: any) => ({
-      ...stream,
-      url: `https://twitch.tv/${stream.user_login}`, // 配信ページURLを追加
-    }));
+    for (const stream of response.data.data) {
+      let thumbnailUrl = stream.thumbnail_url;
+      if (thumbnailUrl.includes('{width}')) {
+        thumbnailUrl = thumbnailUrl.replace('{width}', '320').replace('{height}', '180');
+      }
 
-    const db = await mysql.createConnection(process.env.DATABASE_URL!);
-    for (const stream of streamsWithUrl) {
-      await db.execute(
-        `INSERT INTO streams (id, vtuber_id, title, start_time, game_name, viewer_count, thumbnail_url, url)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE
-         title = VALUES(title), viewer_count = VALUES(viewer_count)`,
-        [
-          stream.id,
-          stream.user_id,
-          stream.title,
-          new Date(stream.started_at),
-          stream.game_name,
-          stream.viewer_count,
-          stream.thumbnail_url,
-          stream.url,
-        ]
-      );
+      const userName = await getVtuberName(stream.user_id);
+      console.log(`vtuberId: ${stream.user_id}, userName: ${userName} (streams)`); // デバッグログ
+
+      streams.push({
+        id: stream.id,
+        user_name: userName,
+        title: stream.title,
+        viewer_count: stream.viewer_count || 0,
+        game_name: stream.game_name || 'ゲームなし',
+        thumbnail_url: thumbnailUrl,
+        url: `https://www.twitch.tv/${stream.user_login}`,
+      });
     }
-    await db.end();
 
-    return NextResponse.json({ data: streamsWithUrl });
+    console.log('返却する配信データ:', streams); // デバッグログ
+    return NextResponse.json({ data: streams });
   } catch (error: any) {
+    console.error('配信取得エラー:', error);
     return NextResponse.json({ error: error.message || 'Failed to get streams' }, { status: 500 });
   }
 }

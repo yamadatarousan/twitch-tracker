@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 import mysql from 'mysql2/promise';
+import { getVtuberName } from '../../lib/db';
 
 export async function GET() {
   try {
@@ -13,10 +14,15 @@ export async function GET() {
     });
     const accessToken = tokenResponse.data.access_token;
 
-    const vtuberIds = ['858359149', '776751504', '790167759', '584184005'];
+    // DB から VTuber の ID 一覧を取得
+    const db = await mysql.createConnection(process.env.DATABASE_URL!);
+    const [vtuberRows] = await db.execute('SELECT id FROM vtubers');
+    const vtuberIds = (vtuberRows as any[]).map((row) => row.id);
+    console.log('取得した VTuber ID (videos):', vtuberIds); // デバッグログ
+    await db.end();
+
     const videos = [];
 
-    // すべてのVTuberのアーカイブを取得
     for (const vtuberId of vtuberIds) {
       const response = await axios.get('https://api.twitch.tv/helix/videos', {
         params: { user_id: vtuberId, type: 'archive', first: 20 },
@@ -34,9 +40,13 @@ export async function GET() {
           thumbnailUrl = thumbnailUrl.replace('{width}', '320').replace('{height}', '180');
         }
 
+        const userName = await getVtuberName(vtuberId);
+        console.log(`vtuberId: ${vtuberId}, userName: ${userName} (videos)`); // デバッグログ
+
         videos.push({
           id: video.id,
           vtuber_id: vtuberId,
+          user_name: userName,
           title: video.title,
           published_at: video.published_at,
           duration: video.duration ? parseDuration(video.duration) : null,
@@ -47,12 +57,11 @@ export async function GET() {
       }
     }
 
-    // すべてのアーカイブをpublished_atでソート（新しい順）
     videos.sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
 
-    const db = await mysql.createConnection(process.env.DATABASE_URL!);
+    const dbSave = await mysql.createConnection(process.env.DATABASE_URL!);
     for (const video of videos) {
-      await db.execute(
+      await dbSave.execute(
         `INSERT INTO videos (id, vtuber_id, title, published_at, duration, thumbnail_url, url, view_count, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
          ON DUPLICATE KEY UPDATE
@@ -69,10 +78,12 @@ export async function GET() {
         ]
       );
     }
-    await db.end();
+    await dbSave.end();
 
+    console.log('返却する動画データ:', videos); // デバッグログ
     return NextResponse.json({ data: videos });
   } catch (error: any) {
+    console.error('動画取得エラー:', error);
     return NextResponse.json({ error: error.message || 'Failed to get videos' }, { status: 500 });
   }
 }
