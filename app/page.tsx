@@ -28,6 +28,7 @@ interface Video {
   duration: number | null;
   thumbnail_url: string;
   url: string;
+  view_count: number; // 視聴回数を追加
 }
 
 export default function Home() {
@@ -155,6 +156,9 @@ export default function Home() {
                 </p>
                 <p className="text-xs text-vspoLightPurple">
                   長さ: {video.duration ? `${video.duration}分` : '不明'}
+                </p>
+                <p className="text-xs text-vspoPurple font-medium mt-1">
+                  視聴回数: {video.view_count.toLocaleString('ja-JP')}回
                 </p>
                 <a
                   href={video.url}

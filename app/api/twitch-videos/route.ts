@@ -25,10 +25,9 @@ export async function GET() {
         },
       });
 
-      console.log('Raw video response for vtuberId', vtuberId, response.data.data); // ログ追加
+      console.log('Raw video response for vtuberId', vtuberId, response.data.data);
 
       for (const video of response.data.data) {
-        // サムネイルURLを正しく変換
         let thumbnailUrl = video.thumbnail_url;
         if (thumbnailUrl.includes('%{width}')) {
           thumbnailUrl = thumbnailUrl.replace('%{width}', '320').replace('%{height}', '180');
@@ -42,8 +41,9 @@ export async function GET() {
           title: video.title,
           published_at: video.published_at,
           duration: video.duration ? parseDuration(video.duration) : null,
-          thumbnail_url: thumbnailUrl, // 修正したサムネイルURL
+          thumbnail_url: thumbnailUrl,
           url: video.url,
+          view_count: video.view_count, // 視聴回数を追加
         });
       }
     }
@@ -51,10 +51,10 @@ export async function GET() {
     const db = await mysql.createConnection(process.env.DATABASE_URL!);
     for (const video of videos) {
       await db.execute(
-        `INSERT INTO videos (id, vtuber_id, title, published_at, duration, thumbnail_url, url, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+        `INSERT INTO videos (id, vtuber_id, title, published_at, duration, thumbnail_url, url, view_count, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
          ON DUPLICATE KEY UPDATE
-         title = VALUES(title)`,
+         title = VALUES(title), view_count = VALUES(view_count)`,
         [
           video.id,
           video.vtuber_id,
@@ -63,6 +63,7 @@ export async function GET() {
           video.duration,
           video.thumbnail_url,
           video.url,
+          video.view_count, // 視聴回数を保存
         ]
       );
     }
