@@ -34,4 +34,23 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
 # twitch-tracker
+
+## デベロッパーからアプリ登録の流れ
+- https://dev.twitch.tv/consoleへアクセス
+- アプリケーションを登録
+- 各種項目を入力
+  - OAuthのリダイレクトURL
+は一旦https://localhost:3000でいい
+- クライアントIDを発行
+- クライアントシークレットを発行
+- https://id.twitch.tv/oauth2/tokenからアクセストークンを取得。paramsは以下
+  - client_id: さっき取得したやつ
+  - client_secret: さっき取得したやつ
+  - grant_type:client_credentials 
+- ユーザー名からユーザーID(数値)を取得
+  - (例)https://api.twitch.tv/helix/users?login=ramuneshiranami&login=asumisena
+  - Headersは以下
+    - Client-ID: さっき取得したやつ
+    - AuthorizationはBearer(半角スペース)さっき取得したアクセストークン
