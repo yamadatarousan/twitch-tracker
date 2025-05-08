@@ -13,7 +13,7 @@ export async function GET() {
     });
     const accessToken = tokenResponse.data.access_token;
 
-    const vtubers = ['ramuneshiranami', 'asumisena', 'nazunakaga'];
+    const vtubers = ['ramuneshiranami', 'asumisena', 'nazunakaga', 'akarindao'];
     const response = await axios.get('https://api.twitch.tv/helix/users', {
       params: new URLSearchParams(vtubers.map(login => ['login', login])),
       headers: {
