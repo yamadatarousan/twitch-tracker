@@ -25,7 +25,7 @@ module.exports = {
         'vspo': '0 4px 20px rgba(139, 92, 246, 0.15)',
         'vspo-hover': '0 8px 30px rgba(139, 92, 246, 0.35)',
         'neon': '0 0 10px rgba(139, 92, 246, 0.5)',
-        'neon-strong': '0 0 8px rgba(139, 92, 246, 0.5)', // さらに弱める
+        'neon-strong': '0 0 8px rgba(139, 92, 246, 0.5)',
       },
       transitionProperty: {
         'transform-glow': 'transform, box-shadow',
@@ -33,7 +33,7 @@ module.exports = {
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',
         'pulse-glow': 'pulseGlow 2s infinite',
-        'wave': 'wave 3s infinite',
+        'char-glow': 'charGlow 2s infinite', // 新しい光るアニメーション
       },
       keyframes: {
         fadeIn: {
@@ -45,9 +45,10 @@ module.exports = {
           '50%': { boxShadow: '0 0 15px rgba(139, 92, 246, 0.7)' },
           '100%': { boxShadow: '0 0 5px rgba(139, 92, 246, 0.3)' },
         },
-        wave: {
-          '0%, 100%': { transform: 'translateY(0)' },
-          '50%': { transform: 'translateY(-5px)' },
+        charGlow: {
+          '0%': { textShadow: '0 0 5px rgba(139, 92, 246, 0.3)' },
+          '50%': { textShadow: '0 0 10px rgba(139, 92, 246, 0.7)' },
+          '100%': { textShadow: '0 0 5px rgba(139, 92, 246, 0.3)' },
         },
       },
       backgroundImage: {

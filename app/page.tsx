@@ -64,11 +64,11 @@ export default function Home() {
 
       {/* タイトル */}
       <div className="text-center mb-12">
-        <h1 className="text-5xl md:text-6xl font-bold font-orbitron text-vspoWhite shadow-neon-strong animate-fade-in inline-block">
+        <h1 className="text-4xl md:text-5xl font-bold font-orbitron text-vspoWhite shadow-neon-strong animate-fade-in inline-block">
           {Array.from('ぶいすぽっ！ライブ配信トラッカー').map((char, index) => (
             <span
               key={index}
-              className="inline-block animate-wave"
+              className="inline-block animate-char-glow"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
               {char}
