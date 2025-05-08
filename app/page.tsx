@@ -8,6 +8,7 @@ interface Stream {
   viewer_count: number;
   game_name: string;
   thumbnail_url: string;
+  url: string; // 配信ページのURLを追加
 }
 
 interface Schedule {
@@ -57,11 +58,13 @@ export default function Home() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {streams.map((stream) => (
           <div key={stream.id} className="bg-white rounded-lg shadow-lg p-4">
-            <img
-              src={stream.thumbnail_url.replace('{width}', '320').replace('{height}', '180')}
-              alt={stream.title}
-              className="w-full h-48 object-cover rounded"
-            />
+            <a href={stream.url} target="_blank" rel="noopener noreferrer">
+              <img
+                src={stream.thumbnail_url.replace('{width}', '320').replace('{height}', '180')}
+                alt={stream.title}
+                className="w-full h-48 object-cover rounded hover:opacity-80 transition-opacity"
+              />
+            </a>
             <h2 className="text-xl font-semibold mt-2">{stream.title}</h2>
             <p className="text-gray-600">配信者: {stream.user_name}</p>
             <p className="text-gray-600">ゲーム: {stream.game_name}</p>

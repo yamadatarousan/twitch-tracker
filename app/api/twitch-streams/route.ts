@@ -22,8 +22,14 @@ export async function GET() {
       },
     });
 
+    // 配信ページのURLを追加
+    const streamsWithUrl = response.data.data.map((stream: any) => ({
+      ...stream,
+      url: `https://twitch.tv/${stream.user_login}`, // 配信ページURLを追加
+    }));
+
     const db = await mysql.createConnection(process.env.DATABASE_URL!);
-    for (const stream of response.data.data) {
+    for (const stream of streamsWithUrl) {
       await db.execute(
         `INSERT INTO streams (id, vtuber_id, title, start_time, game_name, viewer_count, thumbnail_url, url)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -37,13 +43,13 @@ export async function GET() {
           stream.game_name,
           stream.viewer_count,
           stream.thumbnail_url,
-          `https://twitch.tv/${stream.user_login}`,
+          stream.url,
         ]
       );
     }
     await db.end();
 
-    return NextResponse.json(response.data);
+    return NextResponse.json({ data: streamsWithUrl });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to get streams' }, { status: 500 });
   }
