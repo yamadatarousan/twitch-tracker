@@ -25,14 +25,24 @@ export async function GET() {
         },
       });
 
+      console.log('Raw video response for vtuberId', vtuberId, response.data.data); // ログ追加
+
       for (const video of response.data.data) {
+        // サムネイルURLを正しく変換
+        let thumbnailUrl = video.thumbnail_url;
+        if (thumbnailUrl.includes('%{width}')) {
+          thumbnailUrl = thumbnailUrl.replace('%{width}', '320').replace('%{height}', '180');
+        } else if (thumbnailUrl.includes('{width}')) {
+          thumbnailUrl = thumbnailUrl.replace('{width}', '320').replace('{height}', '180');
+        }
+
         videos.push({
           id: video.id,
           vtuber_id: vtuberId,
           title: video.title,
           published_at: video.published_at,
           duration: video.duration ? parseDuration(video.duration) : null,
-          thumbnail_url: video.thumbnail_url,
+          thumbnail_url: thumbnailUrl, // 修正したサムネイルURL
           url: video.url,
         });
       }
@@ -64,7 +74,6 @@ export async function GET() {
   }
 }
 
-// Twitchのduration（例: "1h30m"）を分に変換
 function parseDuration(duration: string): number | null {
   const match = duration.match(/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/);
   if (!match) return null;

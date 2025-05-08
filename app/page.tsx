@@ -8,7 +8,7 @@ interface Stream {
   viewer_count: number;
   game_name: string;
   thumbnail_url: string;
-  url: string; // 配信ページのURLを追加
+  url: string;
 }
 
 interface Schedule {
@@ -106,11 +106,14 @@ export default function Home() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {videos.map((video) => (
           <div key={video.id} className="bg-white rounded-lg shadow-lg p-4">
-            <img
-              src={video.thumbnail_url.replace('{width}', '320').replace('{height}', '180')}
-              alt={video.title}
-              className="w-full h-48 object-cover rounded"
-            />
+            <a href={video.url} target="_blank" rel="noopener noreferrer">
+              <img
+                src={video.thumbnail_url || 'https://via.placeholder.com/320x180?text=No+Thumbnail'}
+                alt={video.title}
+                className="w-full h-48 object-cover rounded hover:opacity-80 transition-opacity"
+                onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/320x180?text=No+Thumbnail')}
+              />
+            </a>
             <h3 className="text-lg font-semibold">{video.title}</h3>
             <p className="text-gray-600">
               公開日: {new Date(video.published_at).toLocaleString('ja-JP')}
